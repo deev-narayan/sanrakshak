@@ -7,10 +7,11 @@ import {
   SidebarMenuButton,
   SidebarContent,
 } from '@/components/ui/sidebar';
-import { Bot, User, TestTube, Factory, Shield } from 'lucide-react';
+import { User, TestTube, Factory, Shield } from 'lucide-react';
 import { useDashboard } from '@/context/DashboardProvider';
 import { cn } from '@/lib/utils';
 import type { UserRole } from '@/lib/schemas';
+import { Logo } from '../icons/logo';
 
 const navItems: { role: UserRole; icon: React.ElementType; label: string }[] = [
   { role: 'Farmer', icon: User, label: 'Farmer' },
@@ -24,9 +25,8 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-            <Bot className="w-8 h-8 text-primary" />
-            <h1 className="text-2xl font-bold text-sidebar-foreground">Sanrakshak</h1>
+        <div className="flex items-center justify-center py-4">
+            <Logo className="h-20" />
         </div>
       </SidebarHeader>
       <SidebarContent>
