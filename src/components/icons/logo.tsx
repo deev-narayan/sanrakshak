@@ -62,7 +62,7 @@ export function Logo({ className }: { className?: string }) {
         x="100"
         y="225"
         fontFamily="serif"
-        fontSize="30"
+        fontSize="36"
         fill="url(#logo-gradient)"
         textAnchor="middle"
         fontWeight="bold"
