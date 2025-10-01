@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { PlusCircle, User } from 'lucide-react';
+import { Edit, User } from 'lucide-react';
 import { useDashboard } from '@/context/DashboardProvider';
 
 // Mock data for farmers, this would come from your DB
@@ -22,7 +22,7 @@ export default function FarmerDashboard() {
   return (
     <div className="space-y-8">
       <Card className="shadow-lg">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
             <div>
                 <CardTitle className="flex items-center gap-2">
                     <User className="text-primary"/>
@@ -30,12 +30,6 @@ export default function FarmerDashboard() {
                 </CardTitle>
                 <CardDescription>Oversee registered farmers and their activities.</CardDescription>
             </div>
-            <Link href="/farmers/register" passHref>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Register New Farmer
-                </Button>
-            </Link>
         </CardHeader>
         <CardContent>
             <Table>
@@ -55,9 +49,15 @@ export default function FarmerDashboard() {
                             <TableCell>{farmer.name}</TableCell>
                             <TableCell>{farmer.village}</TableCell>
                             <TableCell>{new Date(farmer.registeredDate).toLocaleDateString()}</TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right space-x-2">
                                 <Link href={`/farmers/${farmer.id}`} passHref>
                                     <Button variant="outline" size="sm">View Profile</Button>
+                                </Link>
+                                <Link href={`/farmers/${farmer.id}/edit`} passHref>
+                                    <Button variant="secondary" size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </Button>
                                 </Link>
                             </TableCell>
                         </TableRow>

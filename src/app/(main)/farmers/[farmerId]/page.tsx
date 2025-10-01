@@ -60,10 +60,12 @@ export default function FarmerProfilePage() {
                     </CardTitle>
                     <CardDescription>Farmer Profile - {farmer.id}</CardDescription>
                 </div>
-                <Button variant="secondary" className="bg-accent text-accent-foreground hover:bg-accent/90">
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Farmer Details
-                </Button>
+                <Link href={`/farmers/${farmer.id}/edit`} passHref>
+                    <Button variant="secondary" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit Farmer Details
+                    </Button>
+                </Link>
             </CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
