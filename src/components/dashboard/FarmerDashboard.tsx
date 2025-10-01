@@ -3,26 +3,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Edit, User } from 'lucide-react';
+import { Edit, User, UserPlus } from 'lucide-react';
 import { useDashboard } from '@/context/DashboardProvider';
-
-// Mock data for farmers, this would come from your DB
-const farmers = [
-    { id: 'FARM001', name: 'Ramesh Kumar', village: 'Bakshi Ka Talab', registeredDate: '2023-01-15' },
-    { id: 'FARM002', name: 'Sita Devi', village: 'Gosainganj', registeredDate: '2023-02-20' },
-    { id: 'FARM003', name: 'Amit Singh', village: 'Malihabad', registeredDate: '2023-03-10' },
-];
+import { useEffect, useState } from 'react';
+import type { Farmer } from '@/lib/schemas';
 
 export default function FarmerDashboard() {
-    const { batches } = useDashboard();
-
-    // In a real app, you would fetch farmers from your database.
-    // We are using mock data here.
+    const { farmers, isLoading } = useDashboard();
 
   return (
     <div className="space-y-8">
       <Card className="shadow-lg">
-        <CardHeader>
+        <CardHeader className="flex flex-row justify-between items-center">
             <div>
                 <CardTitle className="flex items-center gap-2">
                     <User className="text-primary"/>
@@ -30,6 +22,12 @@ export default function FarmerDashboard() {
                 </CardTitle>
                 <CardDescription>Oversee registered farmers and their activities.</CardDescription>
             </div>
+            <Link href="/farmers/register" passHref>
+                <Button>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Register New Farmer
+                </Button>
+            </Link>
         </CardHeader>
         <CardContent>
             <Table>
@@ -43,7 +41,11 @@ export default function FarmerDashboard() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {farmers.length > 0 ? farmers.map(farmer => (
+                    {isLoading ? (
+                         <TableRow>
+                            <TableCell colSpan={5} className="h-24 text-center">Loading farmers...</TableCell>
+                        </TableRow>
+                    ) : farmers.length > 0 ? farmers.map(farmer => (
                         <TableRow key={farmer.id}>
                             <TableCell className="font-medium">{farmer.id}</TableCell>
                             <TableCell>{farmer.name}</TableCell>
@@ -63,7 +65,7 @@ export default function FarmerDashboard() {
                         </TableRow>
                     )) : (
                         <TableRow>
-                            <TableCell colSpan={5} className="text-center">No farmers found.</TableCell>
+                            <TableCell colSpan={5} className="h-24 text-center">No farmers found.</TableCell>
                         </TableRow>
                     )}
                 </TableBody>

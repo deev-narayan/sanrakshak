@@ -2,9 +2,19 @@ export type UserRole = 'Farmer' | 'Lab' | 'Manufacturer' | 'Regulator';
 
 export type BatchStatus = 'PENDING_TESTING' | 'TESTING_COMPLETE' | 'PROCESSING' | 'FINALIZED' | 'REJECTED';
 
+export interface Farmer {
+  id: string;
+  name: string;
+  village: string;
+  contact: string;
+  geoFence: string;
+  registeredDate: string;
+}
+
 export interface CollectionEvent {
   id: string;
   batchId: string;
+  farmerId: string;
   species: string;
   weightKg: number;
   photoCid: string; // Simulated IPFS hash for photo

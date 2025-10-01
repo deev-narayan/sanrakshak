@@ -1,6 +1,12 @@
-import type { Batch, CollectionEvent, QualityTest, ProcessingStep, BatchStatus } from './schemas';
+import type { Batch, CollectionEvent, QualityTest, ProcessingStep, Farmer } from './schemas';
 
 // In-memory store
+const farmers: Farmer[] = [
+    { id: 'FARM001', name: 'Ramesh Kumar', village: 'Bakshi Ka Talab', contact: '9876543210', geoFence: 'Bakshi Ka Talab, Lucknow', registeredDate: '2023-01-15' },
+    { id: 'FARM002', name: 'Sita Devi', village: 'Gosainganj', contact: '9876543211', geoFence: 'Gosainganj, Lucknow', registeredDate: '2023-02-20' },
+    { id: 'FARM003', name: 'Amit Singh', village: 'Malihabad', contact: '9876543212', geoFence: 'Malihabad, Lucknow', registeredDate: '2023-03-10' },
+];
+
 const batches: Batch[] = [
   {
     id: 'B001-ASH',
@@ -9,6 +15,7 @@ const batches: Batch[] = [
       {
         id: 'C001',
         batchId: 'B001-ASH',
+        farmerId: 'FARM001',
         species: 'Ashwagandha',
         weightKg: 50,
         photoCid: 'ipfs_photo_hash_1',
@@ -38,6 +45,7 @@ const batches: Batch[] = [
       {
         id: 'C002',
         batchId: 'B002-TUL',
+        farmerId: 'FARM001',
         species: 'Tulsi',
         weightKg: 35,
         photoCid: 'ipfs_photo_hash_2',
@@ -56,6 +64,7 @@ const batches: Batch[] = [
       {
         id: 'C003',
         batchId: 'B003-NEM',
+        farmerId: 'FARM002',
         species: 'Neem',
         weightKg: 120,
         photoCid: 'ipfs_photo_hash_3',
@@ -104,6 +113,7 @@ const batches: Batch[] = [
       {
         id: 'C004',
         batchId: 'B004-GIL',
+        farmerId: 'FARM003',
         species: 'Giloy',
         weightKg: 25,
         photoCid: 'ipfs_photo_hash_4',
@@ -122,6 +132,7 @@ const batches: Batch[] = [
       {
         id: 'C005',
         batchId: 'B005-BRA',
+        farmerId: 'FARM002',
         species: 'Brahmi',
         weightKg: 42,
         photoCid: 'ipfs_photo_hash_5',
@@ -139,12 +150,48 @@ const batches: Batch[] = [
 const generateId = (prefix: string) => `${prefix}${Math.random().toString(36).substr(2, 9)}`;
 
 export const db = {
+  // Farmer methods
+  getFarmers: (): Farmer[] => {
+    return farmers.sort((a, b) => new Date(b.registeredDate).getTime() - new Date(a.registeredDate).getTime());
+  },
+
+  getFarmerById: (id: string): Farmer | undefined => {
+    return farmers.find(f => f.id === id);
+  },
+
+  addFarmer: (farmerData: Omit<Farmer, 'registeredDate'>): Farmer => {
+    if (farmers.some(f => f.id === farmerData.id)) {
+        throw new Error('Farmer with this ID already exists.');
+    }
+    const newFarmer: Farmer = {
+      ...farmerData,
+      registeredDate: new Date().toISOString(),
+    };
+    farmers.unshift(newFarmer);
+    return newFarmer;
+  },
+
+  updateFarmer: (id: string, updates: Partial<Omit<Farmer, 'id' | 'registeredDate'>>): Farmer | undefined => {
+    const farmerIndex = farmers.findIndex(f => f.id === id);
+    if (farmerIndex === -1) {
+      return undefined;
+    }
+    const updatedFarmer = { ...farmers[farmerIndex], ...updates };
+    farmers[farmerIndex] = updatedFarmer;
+    return updatedFarmer;
+  },
+
+  // Batch methods
   getBatches: (): Batch[] => {
     return batches.sort((a, b) => {
         const dateA = new Date(a.collectionEvents[0].collectionDate).getTime();
         const dateB = new Date(b.collectionEvents[0].collectionDate).getTime();
         return dateB - dateA;
     });
+  },
+
+  getBatchesByFarmerId: (farmerId: string): Batch[] => {
+    return batches.filter(batch => batch.collectionEvents.some(event => event.farmerId === farmerId));
   },
 
   getBatchById: (id: string): Batch | undefined => {

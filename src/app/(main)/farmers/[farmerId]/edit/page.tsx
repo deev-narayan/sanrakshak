@@ -10,18 +10,16 @@ import { useToast } from '@/hooks/use-toast';
 import { Edit } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import type { Farmer } from '@/lib/schemas';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useDashboard } from '@/context/DashboardProvider';
 
-// Mock data, in a real app you'd fetch this based on farmerId
-const farmers = [
-    { id: 'FARM001', name: 'Ramesh Kumar', village: 'Bakshi Ka Talab', contact: '9876543210', geoFence: 'Bakshi Ka Talab, Lucknow' },
-    { id: 'FARM002', name: 'Sita Devi', village: 'Gosainganj', contact: '9876543211', geoFence: 'Gosainganj, Lucknow' },
-    { id: 'FARM003', name: 'Amit Singh', village: 'Malihabad', contact: '9876543212', geoFence: 'Malihabad, Lucknow' },
-];
 
 const editFarmerSchema = z.object({
-  fullName: z.string().min(3, 'Full name is required'),
+  name: z.string().min(3, 'Full name is required'),
   village: z.string().min(1, 'Village/District is required'),
-  contactNumber: z.string().min(10, 'Contact number must be at least 10 digits'),
+  contact: z.string().min(10, 'Contact number must be at least 10 digits'),
   geoFence: z.string().min(1, 'Geo-fence area is required'),
 });
 
@@ -29,37 +27,86 @@ export default function EditFarmerPage() {
   const { toast } = useToast();
   const router = useRouter();
   const { farmerId } = useParams<{ farmerId: string }>();
-
-  const farmer = farmers.find(f => f.id === farmerId);
+  const [farmer, setFarmer] = useState<Farmer | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { refreshFarmers } = useDashboard();
 
   const form = useForm<z.infer<typeof editFarmerSchema>>({
     resolver: zodResolver(editFarmerSchema),
     defaultValues: {
-      fullName: farmer?.name || '',
-      village: farmer?.village || '',
-      contactNumber: farmer?.contact || '',
-      geoFence: farmer?.geoFence || 'Lucknow District, UP, India',
+      name: '',
+      village: '',
+      contact: '',
+      geoFence: '',
     },
   });
 
+  useEffect(() => {
+    if (farmerId) {
+        setIsLoading(true);
+        fetch(`/api/farmers/${farmerId}`)
+            .then(res => {
+                if (!res.ok) throw new Error('Farmer not found');
+                return res.json()
+            })
+            .then(data => {
+                setFarmer(data);
+                form.reset(data);
+            })
+            .catch(err => {
+                console.error(err);
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not load farmer data.' });
+            })
+            .finally(() => setIsLoading(false));
+    }
+  }, [farmerId, form, toast]);
+
+
   async function onSubmit(values: z.infer<typeof editFarmerSchema>) {
-    // Here you would typically send the data to your API to update the farmer
-    console.log('Updating farmer:', farmerId, values);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+        const response = await fetch(`/api/farmers/${farmerId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(values),
+        });
 
-    toast({
-      title: 'Farmer Updated!',
-      description: `${values.fullName}'s details have been updated.`,
-    });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
+        
+        toast({
+          title: 'Farmer Updated!',
+          description: `${values.name}'s details have been updated.`,
+        });
 
-    // In a real app, you would handle the response and maybe redirect.
-    router.push(`/farmers/${farmerId}`);
+        refreshFarmers();
+        router.push(`/farmers/${farmerId}`);
+    } catch (error: any) {
+         toast({
+            variant: 'destructive',
+            title: 'Update Error',
+            description: error.message,
+        });
+    }
+  }
+
+  if (isLoading) {
+    return (
+        <div className="max-w-2xl mx-auto">
+            <Card>
+                <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
+                <CardContent className="space-y-6">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                </CardContent>
+            </Card>
+        </div>
+    );
   }
 
   if (!farmer) {
-    return <div>Farmer not found</div>;
+    return <div className="max-w-2xl mx-auto">Farmer not found</div>;
   }
 
   return (
@@ -76,7 +123,7 @@ export default function EditFarmerPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
-                name="fullName"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
@@ -102,7 +149,7 @@ export default function EditFarmerPage() {
               />
                <FormField
                 control={form.control}
-                name="contactNumber"
+                name="contact"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Contact Number</FormLabel>

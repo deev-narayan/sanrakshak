@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   try {
     const body: Omit<CollectionEvent, 'id' | 'batchId'> = await request.json();
 
-    if (!body.species || !body.weightKg || !body.location) {
+    if (!body.farmerId || !body.species || !body.weightKg || !body.location) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     

@@ -7,36 +7,62 @@ import { ArrowLeft, Edit, User, MapPin, Phone } from 'lucide-react';
 import { useDashboard } from '@/context/DashboardProvider';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import type { Batch, Farmer } from '@/lib/schemas';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Mock data, in a real app you'd fetch this based on farmerId
-const farmers = [
-    { id: 'FARM001', name: 'Ramesh Kumar', village: 'Bakshi Ka Talab', contact: '9876543210', geoFence: 'Bakshi Ka Talab, Lucknow' },
-    { id: 'FARM002', name: 'Sita Devi', village: 'Gosainganj', contact: '9876543211', geoFence: 'Gosainganj, Lucknow' },
-    { id: 'FARM003', name: 'Amit Singh', village: 'Malihabad', contact: '9876543212', geoFence: 'Malihabad, Lucknow' },
-];
 
 export default function FarmerProfilePage() {
   const { farmerId } = useParams<{ farmerId: string }>();
-  const { batches, isLoading } = useDashboard();
+  const [farmer, setFarmer] = useState<Farmer | null>(null);
+  const [farmerBatches, setFarmerBatches] = useState<Batch[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Find the farmer from mock data
-  const farmer = farmers.find(f => f.id === farmerId);
+  useEffect(() => {
+    async function fetchData() {
+        if (!farmerId) return;
+        setIsLoading(true);
+        try {
+            const [farmerRes, batchesRes] = await Promise.all([
+                fetch(`/api/farmers/${farmerId}`),
+                fetch(`/api/farmers/${farmerId}/batches`)
+            ]);
 
-  // Filter batches submitted by this farmer. 
-  // NOTE: This is a simulation. In a real app, the collectionEvent would have a farmerId.
-  // We'll simulate this by assigning some batches to this farmer for demonstration.
-  const farmerBatches = batches.filter(b => {
-    if (farmerId === 'FARM001') return b.id.includes('ASH') || b.id.includes('TUL');
-    if (farmerId === 'FARM002') return b.id.includes('NEM');
-    return false;
-  });
+            if (!farmerRes.ok) throw new Error('Farmer not found');
+            if (!batchesRes.ok) throw new Error('Could not fetch batches');
+
+            const farmerData = await farmerRes.json();
+            const batchesData = await batchesRes.json();
+
+            setFarmer(farmerData);
+            setFarmerBatches(batchesData);
+
+        } catch (error) {
+            console.error("Failed to fetch farmer profile:", error);
+            setFarmer(null);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    fetchData();
+  }, [farmerId]);
+  
+  if (isLoading) {
+    return (
+        <div className="space-y-8">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-64 w-full" />
+        </div>
+    )
+  }
 
   if (!farmer) {
     return (
         <div className="text-center">
             <h1 className="text-2xl font-bold">Farmer not found</h1>
             <Link href="/" passHref>
-                <Button variant="link">Go Back</Button>
+                <Button variant="link">Go Back to Farmer List</Button>
             </Link>
         </div>
     )
@@ -45,7 +71,7 @@ export default function FarmerProfilePage() {
   return (
     <div className="space-y-8">
         <Link href="/" passHref>
-            <Button variant="outline" className="mb-4">
+            <Button variant="outline">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Farmer List
             </Button>
@@ -106,11 +132,7 @@ export default function FarmerProfilePage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isLoading ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">Loading collections...</TableCell>
-                            </TableRow>
-                        ) : farmerBatches.length > 0 ? farmerBatches.map(batch => (
+                        {farmerBatches.length > 0 ? farmerBatches.map(batch => (
                             <TableRow key={batch.id}>
                                 <TableCell className="font-medium">{batch.id}</TableCell>
                                 <TableCell>{batch.collectionEvents[0].species}</TableCell>
