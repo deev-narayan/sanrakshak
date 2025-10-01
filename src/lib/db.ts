@@ -51,7 +51,7 @@ const batches: Batch[] = [
   },
     {
     id: 'B003-NEM',
-    status: 'PENDING_TESTING',
+    status: 'FINALIZED',
     collectionEvents: [
       {
         id: 'C003',

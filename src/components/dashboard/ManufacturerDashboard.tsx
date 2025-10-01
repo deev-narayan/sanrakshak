@@ -163,7 +163,7 @@ export default function ManufacturerDashboard() {
           </div>
           <DialogFooter className="pt-4 border-t">
             <Button variant="secondary" onClick={() => setIsDetailsOpen(false)}>Close</Button>
-            <Button variant="outline" onClick={() => setIsProcessingOpen(true)} disabled={selectedBatch?.status === 'FINALIZED'}>Add Processing Step</Button>
+            <Button variant="outline" onClick={() => { form.reset(); setIsProcessingOpen(true); }} disabled={selectedBatch?.status === 'FINALIZED'}>Add Processing Step</Button>
             <Button onClick={() => handleFinalizeBatch(selectedBatch!.id)} disabled={selectedBatch?.status === 'FINALIZED' || selectedBatch?.qualityTests.length === 0}>
                 Finalize & Generate QR
             </Button>
@@ -228,7 +228,9 @@ export default function ManufacturerDashboard() {
               </DialogHeader>
               <div className="flex justify-center items-center p-4">
                 {qrPlaceholder && (
+                  <a href={`/verify?batchId=${selectedBatch?.id}`} target="_blank" rel="noopener noreferrer">
                     <Image src={qrPlaceholder.imageUrl} data-ai-hint={qrPlaceholder.imageHint} alt="QR Code" width={200} height={200} className="rounded-lg" />
+                  </a>
                 )}
               </div>
               <DialogFooter className='gap-2'>
