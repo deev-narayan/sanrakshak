@@ -51,7 +51,7 @@ const batches: Batch[] = [
   },
     {
     id: 'B003-NEM',
-    status: 'FINALIZED',
+    status: 'PENDING_TESTING',
     collectionEvents: [
       {
         id: 'C003',
@@ -96,6 +96,42 @@ const batches: Batch[] = [
     ],
     finalizedTimestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     qrCodeUrl: `/verify?batchId=B003-NEM`
+  },
+  {
+    id: 'B004-GIL',
+    status: 'PENDING_TESTING',
+    collectionEvents: [
+      {
+        id: 'C004',
+        batchId: 'B004-GIL',
+        species: 'Giloy',
+        weightKg: 25,
+        photoCid: 'ipfs_photo_hash_4',
+        location: { name: 'Prayagraj, India', coordinates: [25.4358, 81.8463] },
+        collectionDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        farmerSignature: 'farmer_sig_04',
+      },
+    ],
+    qualityTests: [],
+    processingSteps: [],
+  },
+  {
+    id: 'B005-BRA',
+    status: 'PENDING_TESTING',
+    collectionEvents: [
+      {
+        id: 'C005',
+        batchId: 'B005-BRA',
+        species: 'Brahmi',
+        weightKg: 42,
+        photoCid: 'ipfs_photo_hash_5',
+        location: { name: 'Ayodhya, India', coordinates: [26.7937, 82.1998] },
+        collectionDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+        farmerSignature: 'farmer_sig_05',
+      },
+    ],
+    qualityTests: [],
+    processingSteps: [],
   }
 ];
 
@@ -104,7 +140,11 @@ const generateId = (prefix: string) => `${prefix}${Math.random().toString(36).su
 
 export const db = {
   getBatches: (): Batch[] => {
-    return batches;
+    return batches.sort((a, b) => {
+        const dateA = new Date(a.collectionEvents[0].collectionDate).getTime();
+        const dateB = new Date(b.collectionEvents[0].collectionDate).getTime();
+        return dateB - dateA;
+    });
   },
 
   getBatchById: (id: string): Batch | undefined => {
