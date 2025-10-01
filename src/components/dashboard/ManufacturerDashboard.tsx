@@ -18,6 +18,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import QRCode from 'qrcode';
 
 
 const statusIcons: { [key: string]: React.ElementType } = {
@@ -33,6 +34,91 @@ const processStepSchema = z.object({
   details: z.string().min(1, "Details are required"),
 });
 
+const escapeXml = (unsafe: string) => {
+    return unsafe.replace(/[<>&'"]/g, (c) => {
+        switch (c) {
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '&': return '&amp;';
+            case '\'': return '&apos;';
+            case '"': return '&quot;';
+            default: return c;
+        }
+    });
+};
+
+const generateBatchXml = (batch: Batch): string => {
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<Bundle xmlns="http://hl7.org/fhir">\n';
+    xml += `  <id value="${batch.id}" />\n`;
+    xml += `  <type value="collection" />\n`;
+
+    // Provenance for the entire batch
+    xml += '  <entry>\n';
+    xml += '    <resource>\n';
+    xml += '      <Provenance>\n';
+    xml += `        <id value="${batch.id}-provenance" />\n`;
+    xml += `        <target>\n          <reference value="Batch/${batch.id}" />\n        </target>\n`;
+    xml += `        <recorded value="${batch.finalizedTimestamp || new Date().toISOString()}" />\n`;
+    
+    // Collection Event
+    batch.collectionEvents.forEach(event => {
+        xml += '        <entity>\n';
+        xml += '          <role value="source" />\n';
+        xml += '          <what>\n';
+        xml += `            <display value="Collection Event: ${event.id}" />\n`;
+        xml += '          </what>\n';
+        xml += '        </entity>\n';
+    });
+
+    // Quality Tests
+    batch.qualityTests.forEach(test => {
+        xml += '        <entity>\n';
+        xml += '          <role value="source" />\n';
+        xml += '          <what>\n';
+        xml += `            <display value="Quality Test: ${test.id}" />\n`;
+        xml += '          </what>\n';
+        xml += '        </entity>\n';
+    });
+     
+    // Processing Steps
+    batch.processingSteps.forEach(step => {
+        xml += '        <entity>\n';
+        xml += '          <role value="source" />\n';
+        xml += '          <what>\n';
+        xml += `            <display value="Processing Step: ${step.stepName}" />\n`;
+        xml += '          </what>\n';
+        xml += '        </entity>\n';
+    });
+    
+    xml += '      </Provenance>\n';
+    xml += '    </resource>\n';
+    xml += '  </entry>\n';
+
+    // Collection Event Details
+    batch.collectionEvents.forEach(event => {
+        xml += '  <entry>\n';
+        xml += '    <resource>\n';
+        xml += `      <Observation>\n`;
+        xml += `        <id value="${event.id}" />\n`;
+        xml += `        <status value="final" />\n`;
+        xml += `        <code>\n          <text value="Collection Details" />\n        </code>\n`;
+        xml += `        <component>\n          <code><text value="Species" /></code>\n          <valueString value="${escapeXml(event.species)}" />\n        </component>\n`;
+        xml += `        <component>\n          <code><text value="WeightKg" /></code>\n          <valueQuantity>\n            <value value="${event.weightKg}" />\n            <unit value="kg" />\n          </valueQuantity>\n        </component>\n`;
+        xml += `        <component>\n          <code><text value="Location" /></code>\n          <valueString value="${escapeXml(event.location.name)}" />\n        </component>\n`;
+        xml += `        <component>\n          <code><text value="Farmer" /></code>\n          <valueString value="${escapeXml(event.farmerId)}" />\n        </component>\n`;
+        xml += `        <effectiveDateTime value="${event.collectionDate}" />\n`;
+        xml += `      </Observation>\n`;
+        xml += '    </resource>\n';
+        xml += '  </entry>\n';
+    });
+    
+    // ... add similar entries for QualityTest and ProcessingStep if needed ...
+
+    xml += '</Bundle>';
+    return xml;
+};
+
 
 export default function ManufacturerDashboard() {
   const { batches, isLoading, refreshBatches } = useDashboard();
@@ -40,8 +126,8 @@ export default function ManufacturerDashboard() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isProcessingOpen, setIsProcessingOpen] = useState(false);
   const [isQrOpen, setIsQrOpen] = useState(false);
+  const [generatedQrCode, setGeneratedQrCode] = useState<string>('');
   const { toast } = useToast();
-  const qrPlaceholder = PlaceHolderImages.find(p => p.id === 'qr-code-placeholder');
 
 
   const form = useForm<z.infer<typeof processStepSchema>>({
@@ -69,33 +155,33 @@ export default function ManufacturerDashboard() {
       
       toast({ title: 'Batch Finalized!', description: `Batch ${batchId} is now finalized.` });
       refreshBatches();
-      setSelectedBatch(result); // Keep the selected batch data for the QR dialog
-      setIsDetailsOpen(false); // Close details dialog
-      setIsQrOpen(true); // Open QR dialog
+
+      const xmlData = generateBatchXml(result);
+      const qrDataUrl = await QRCode.toDataURL(xmlData, { errorCorrectionLevel: 'L', width: 256 });
+      setGeneratedQrCode(qrDataUrl);
+      
+      setSelectedBatch(result); 
+      setIsDetailsOpen(false);
+      setIsQrOpen(true);
 
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     }
   };
 
-  const handleDownloadQr = async () => {
-    if (!qrPlaceholder || !selectedBatch) return;
+  const handleDownloadXml = () => {
+    if (!selectedBatch) return;
 
-    try {
-        const response = await fetch(qrPlaceholder.imageUrl);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `qr-code-batch-${selectedBatch.id}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-    } catch (error) {
-        console.error("QR Download failed", error);
-        toast({ variant: 'destructive', title: 'Download Error', description: 'Could not download the QR code image.'});
-    }
+    const xmlData = generateBatchXml(selectedBatch);
+    const blob = new Blob([xmlData], { type: 'application/xml' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `batch-report-${selectedBatch.id}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
   };
 
   async function onAddProcessingStep(values: z.infer<typeof processStepSchema>) {
@@ -243,18 +329,16 @@ export default function ManufacturerDashboard() {
               <DialogHeader>
                   <DialogTitle>Batch Finalized! Scan QR for Provenance</DialogTitle>
                   <DialogDescription>
-                      The QR code for batch <span className="font-bold">{selectedBatch?.id}</span> is ready. Consumers can scan this to verify provenance.
+                      The QR code for batch <span className="font-bold">{selectedBatch?.id}</span> contains the full XML data.
                   </DialogDescription>
               </DialogHeader>
               <div className="flex justify-center items-center p-4">
-                {qrPlaceholder && (
-                  <a href={`/verify?batchId=${selectedBatch?.id}`} target="_blank" rel="noopener noreferrer">
-                    <Image src={qrPlaceholder.imageUrl} data-ai-hint={qrPlaceholder.imageHint} alt="QR Code" width={200} height={200} className="rounded-lg" />
-                  </a>
+                {generatedQrCode && (
+                  <Image src={generatedQrCode} alt="Generated QR Code" width={256} height={256} className="rounded-lg" />
                 )}
               </div>
               <DialogFooter className='gap-2'>
-                <Button variant="outline" onClick={handleDownloadQr}>Download QR</Button>
+                <Button variant="outline" onClick={handleDownloadXml}>Download XML Report</Button>
                 <Button onClick={() => setIsQrOpen(false)}>Close</Button>
               </DialogFooter>
           </DialogContent>
