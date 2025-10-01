@@ -169,19 +169,15 @@ export default function ManufacturerDashboard() {
     }
   };
 
-  const handleDownloadXml = () => {
-    if (!selectedBatch) return;
+  const handleDownloadQrCode = () => {
+    if (!selectedBatch || !generatedQrCode) return;
 
-    const xmlData = generateBatchXml(selectedBatch);
-    const blob = new Blob([xmlData], { type: 'application/xml' });
-    const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `batch-report-${selectedBatch.id}.xml`;
+    a.href = generatedQrCode;
+    a.download = `qr-batch-${selectedBatch.id}.png`;
     document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
+a.click();
+    document.body.removeChild(a);
   };
 
   async function onAddProcessingStep(values: z.infer<typeof processStepSchema>) {
@@ -338,7 +334,7 @@ export default function ManufacturerDashboard() {
                 )}
               </div>
               <DialogFooter className='gap-2'>
-                <Button variant="outline" onClick={handleDownloadXml}>Download XML Report</Button>
+                <Button variant="outline" onClick={handleDownloadQrCode}>Download QR Code</Button>
                 <Button onClick={() => setIsQrOpen(false)}>Close</Button>
               </DialogFooter>
           </DialogContent>

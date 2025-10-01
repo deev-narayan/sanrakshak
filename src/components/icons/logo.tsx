@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 export function Logo({ className }: { className?: string }) {
   return (
     <svg
-      xmlns="http://www.w3.org/2000/svg"
+      xmlns=""
       viewBox="0 0 200 240"
       className={cn("w-full", className)}
       aria-label="Sanrakshak Logo"
