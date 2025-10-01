@@ -9,7 +9,6 @@ import { useState } from 'react';
 import type { Batch } from '@/lib/schemas';
 import BatchTimeline from './BatchTimeline';
 import { useToast } from '@/hooks/use-toast';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -18,6 +17,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 
 
 const statusIcons: { [key: string]: React.ElementType } = {
@@ -69,9 +69,9 @@ export default function ManufacturerDashboard() {
       
       toast({ title: 'Batch Finalized!', description: `Batch ${batchId} is now finalized.` });
       refreshBatches();
-      setSelectedBatch(result);
-      setIsDetailsOpen(false);
-      setIsQrOpen(true);
+      setSelectedBatch(result); // Keep the selected batch data for the QR dialog
+      setIsDetailsOpen(false); // Close details dialog
+      setIsQrOpen(true); // Open QR dialog
 
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
@@ -207,7 +207,7 @@ export default function ManufacturerDashboard() {
                   )}
                 />
                 <DialogFooter>
-                    <Button variant="ghost" onClick={() => setIsProcessingOpen(false)}>Cancel</Button>
+                    <Button variant="ghost" type="button" onClick={() => setIsProcessingOpen(false)}>Cancel</Button>
                     <Button type="submit" disabled={form.formState.isSubmitting}>
                         {form.formState.isSubmitting ? "Adding..." : "Add Step"}
                     </Button>
@@ -233,7 +233,7 @@ export default function ManufacturerDashboard() {
               </div>
               <DialogFooter className='gap-2'>
                 <Button variant="outline">Download QR</Button>
-                <Button onClick={() => setIsQrOpen(false)}>Done</Button>
+                <Button onClick={() => setIsQrOpen(false)}>Close</Button>
               </DialogFooter>
           </DialogContent>
       </Dialog>
