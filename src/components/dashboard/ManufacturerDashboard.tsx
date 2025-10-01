@@ -70,9 +70,18 @@ export default function ManufacturerDashboard() {
       toast({ title: 'Batch Finalized!', description: `Batch ${batchId} is now finalized.` });
       refreshBatches();
 
-      // Generate a URL for the QR code
-      const verificationUrl = `${window.location.origin}/verify?batchId=${batchId}`;
-      const qrDataUrl = await QRCode.toDataURL(verificationUrl, { errorCorrectionLevel: 'L', width: 256 });
+      // Generate compact JSON data from the batch details
+      const jsonData = JSON.stringify({
+        id: result.id,
+        status: result.status,
+        finalizedTimestamp: result.finalizedTimestamp,
+        collectionEvents: result.collectionEvents,
+        qualityTests: result.qualityTests,
+        processingSteps: result.processingSteps,
+      });
+
+      // Generate QR code with embedded JSON data and high error correction
+      const qrDataUrl = await QRCode.toDataURL(jsonData, { errorCorrectionLevel: 'H', width: 256 });
       setGeneratedQrCode(qrDataUrl);
       
       setSelectedBatch(result); 
@@ -91,7 +100,7 @@ export default function ManufacturerDashboard() {
     a.href = generatedQrCode;
     a.download = `qr-batch-${selectedBatch.id}.png`;
     document.body.appendChild(a);
-a.click();
+    a.click();
     document.body.removeChild(a);
   };
 
@@ -240,7 +249,7 @@ a.click();
               <DialogHeader>
                   <DialogTitle>Batch Finalized! Scan QR for Provenance</DialogTitle>
                   <DialogDescription>
-                      This QR code links to a public page with the full traceability report for batch <span className="font-bold">{selectedBatch?.id}</span>.
+                      This QR code contains the full traceability report for batch <span className="font-bold">{selectedBatch?.id}</span>.
                   </DialogDescription>
               </DialogHeader>
               <div className="flex justify-center items-center p-4">
