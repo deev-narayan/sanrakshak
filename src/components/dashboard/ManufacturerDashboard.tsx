@@ -34,92 +34,6 @@ const processStepSchema = z.object({
   details: z.string().min(1, "Details are required"),
 });
 
-const escapeXml = (unsafe: string) => {
-    return unsafe.replace(/[<>&'"]/g, (c) => {
-        switch (c) {
-            case '<': return '&lt;';
-            case '>': return '&gt;';
-            case '&': return '&amp;';
-            case '\'': return '&apos;';
-            case '"': return '&quot;';
-            default: return c;
-        }
-    });
-};
-
-const generateBatchXml = (batch: Batch): string => {
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    xml += '<Bundle xmlns="http://hl7.org/fhir">\n';
-    xml += `  <id value="${batch.id}" />\n`;
-    xml += `  <type value="collection" />\n`;
-
-    // Provenance for the entire batch
-    xml += '  <entry>\n';
-    xml += '    <resource>\n';
-    xml += '      <Provenance>\n';
-    xml += `        <id value="${batch.id}-provenance" />\n`;
-    xml += `        <target>\n          <reference value="Batch/${batch.id}" />\n        </target>\n`;
-    xml += `        <recorded value="${batch.finalizedTimestamp || new Date().toISOString()}" />\n`;
-    
-    // Collection Event
-    batch.collectionEvents.forEach(event => {
-        xml += '        <entity>\n';
-        xml += '          <role value="source" />\n';
-        xml += '          <what>\n';
-        xml += `            <display value="Collection Event: ${event.id}" />\n`;
-        xml += '          </what>\n';
-        xml += '        </entity>\n';
-    });
-
-    // Quality Tests
-    batch.qualityTests.forEach(test => {
-        xml += '        <entity>\n';
-        xml += '          <role value="source" />\n';
-        xml += '          <what>\n';
-        xml += `            <display value="Quality Test: ${test.id}" />\n`;
-        xml += '          </what>\n';
-        xml += '        </entity>\n';
-    });
-     
-    // Processing Steps
-    batch.processingSteps.forEach(step => {
-        xml += '        <entity>\n';
-        xml += '          <role value="source" />\n';
-        xml += '          <what>\n';
-        xml += `            <display value="Processing Step: ${step.stepName}" />\n`;
-        xml += '          </what>\n';
-        xml += '        </entity>\n';
-    });
-    
-    xml += '      </Provenance>\n';
-    xml += '    </resource>\n';
-    xml += '  </entry>\n';
-
-    // Collection Event Details
-    batch.collectionEvents.forEach(event => {
-        xml += '  <entry>\n';
-        xml += '    <resource>\n';
-        xml += `      <Observation>\n`;
-        xml += `        <id value="${event.id}" />\n`;
-        xml += `        <status value="final" />\n`;
-        xml += `        <code>\n          <text value="Collection Details" />\n        </code>\n`;
-        xml += `        <component>\n          <code><text value="Species" /></code>\n          <valueString value="${escapeXml(event.species)}" />\n        </component>\n`;
-        xml += `        <component>\n          <code><text value="WeightKg" /></code>\n          <valueQuantity>\n            <value value="${event.weightKg}" />\n            <unit value="kg" />\n          </valueQuantity>\n        </component>\n`;
-        xml += `        <component>\n          <code><text value="Location" /></code>\n          <valueString value="${escapeXml(event.location.name)}" />\n        </component>\n`;
-        xml += `        <component>\n          <code><text value="Farmer" /></code>\n          <valueString value="${escapeXml(event.farmerId)}" />\n        </component>\n`;
-        xml += `        <effectiveDateTime value="${event.collectionDate}" />\n`;
-        xml += `      </Observation>\n`;
-        xml += '    </resource>\n';
-        xml += '  </entry>\n';
-    });
-    
-    // ... add similar entries for QualityTest and ProcessingStep if needed ...
-
-    xml += '</Bundle>';
-    return xml;
-};
-
-
 export default function ManufacturerDashboard() {
   const { batches, isLoading, refreshBatches } = useDashboard();
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
@@ -156,8 +70,9 @@ export default function ManufacturerDashboard() {
       toast({ title: 'Batch Finalized!', description: `Batch ${batchId} is now finalized.` });
       refreshBatches();
 
-      const xmlData = generateBatchXml(result);
-      const qrDataUrl = await QRCode.toDataURL(xmlData, { errorCorrectionLevel: 'L', width: 256 });
+      // Generate a URL for the QR code
+      const verificationUrl = `${window.location.origin}/verify?batchId=${batchId}`;
+      const qrDataUrl = await QRCode.toDataURL(verificationUrl, { errorCorrectionLevel: 'L', width: 256 });
       setGeneratedQrCode(qrDataUrl);
       
       setSelectedBatch(result); 
@@ -325,7 +240,7 @@ a.click();
               <DialogHeader>
                   <DialogTitle>Batch Finalized! Scan QR for Provenance</DialogTitle>
                   <DialogDescription>
-                      The QR code for batch <span className="font-bold">{selectedBatch?.id}</span> contains the full XML data.
+                      This QR code links to a public page with the full traceability report for batch <span className="font-bold">{selectedBatch?.id}</span>.
                   </DialogDescription>
               </DialogHeader>
               <div className="flex justify-center items-center p-4">
