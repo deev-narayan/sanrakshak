@@ -78,6 +78,26 @@ export default function ManufacturerDashboard() {
     }
   };
 
+  const handleDownloadQr = async () => {
+    if (!qrPlaceholder || !selectedBatch) return;
+
+    try {
+        const response = await fetch(qrPlaceholder.imageUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `qr-code-batch-${selectedBatch.id}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error("QR Download failed", error);
+        toast({ variant: 'destructive', title: 'Download Error', description: 'Could not download the QR code image.'});
+    }
+  };
+
   async function onAddProcessingStep(values: z.infer<typeof processStepSchema>) {
     if (!selectedBatch) return;
 
@@ -234,7 +254,7 @@ export default function ManufacturerDashboard() {
                 )}
               </div>
               <DialogFooter className='gap-2'>
-                <Button variant="outline">Download QR</Button>
+                <Button variant="outline" onClick={handleDownloadQr}>Download QR</Button>
                 <Button onClick={() => setIsQrOpen(false)}>Close</Button>
               </DialogFooter>
           </DialogContent>
