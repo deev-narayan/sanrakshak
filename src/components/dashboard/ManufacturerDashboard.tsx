@@ -221,7 +221,7 @@ export default function ManufacturerDashboard() {
       <Dialog open={isQrOpen} onOpenChange={setIsQrOpen}>
           <DialogContent>
               <DialogHeader>
-                  <DialogTitle>Batch Finalized & QR Code Generated</DialogTitle>
+                  <DialogTitle>Batch Finalized! Scan QR for Provenance</DialogTitle>
                   <DialogDescription>
                       The QR code for batch <span className="font-bold">{selectedBatch?.id}</span> is ready. Consumers can scan this to verify provenance.
                   </DialogDescription>
@@ -231,7 +231,8 @@ export default function ManufacturerDashboard() {
                     <Image src={qrPlaceholder.imageUrl} data-ai-hint={qrPlaceholder.imageHint} alt="QR Code" width={200} height={200} className="rounded-lg" />
                 )}
               </div>
-              <DialogFooter>
+              <DialogFooter className='gap-2'>
+                <Button variant="outline">Download QR</Button>
                 <Button onClick={() => setIsQrOpen(false)}>Done</Button>
               </DialogFooter>
           </DialogContent>
